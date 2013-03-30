@@ -193,51 +193,62 @@ tim∙churches@gmail∙com<br/>
 
 <p>This short investigation of the <em>parallel</em> package for R, was motvated by a demonstration of parallel processing with R given by Dr Jan Luts of the School of Mathematical Sciences at the University of Technology Sydney (UTS). The example function shown below is a slightly modified version of a function used by Jan in his demonstration (thanks to Jan for making a copy of his code available).</p>
 
+<p>A much better resource for the <em>parallel</em> pakage thanthis document is the <a href="http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf">fairly extensive vignette</a> for it!</p>
+
 <h3>Threading and processes</h3>
 
-<p>Each instance of R running on a computer is typically just a single process, which itself is essentially single-threaded (although that is slowly changing with each new version of R). What that means is that an R process will use the resources of only one CPU core. If your computer has one CPU chip with two cores (as do most recent laptops and desktop computers), then a single R session (running in a single process) will  use only half the available CPU power of that computer. Higher-end laptop and desktop computers (eg recent Macbook Pro laptops) typically have quad-core CPUs, and servers typically have two or four CPU chips each with between 4 and 12 cores - thus up to 48 cores in total. Some shared memory (NUMA) high-performance computing (HPC) machines make thousands of CPU cores available to the operating system. Running a single R process on such machines clearly underutilises their capabilities. </p>
+<p>Each instance of R running on a computer is typically just a single process, which itself is essentially single-threaded (although that is slowly changing with each new version of R). What that means is that an R process will use the resources of only one CPU core. If your computer has one CPU chip with two cores (as do most recent laptops and desktop computers), then a single R session (running in a single process) will  use only half the available CPU power of that computer. Higher-end laptop and desktop computers (eg recent Macbook Pro laptops) typically have quad-core CPUs, and servers typically have two or four CPU chips each with between 4 and 12 cores - thus up to 48 cores in total. Some shared memory (NUMA) high-performance computing (HPC) machines make thousands of CPU cores available to the operating system. Running a single R process on such machines clearly under-utilises their capabilities. </p>
 
 <p>One solution is to make each R process multi-threaded, so that work is divided internally within R and assigned to run on more than one CPU core at once. There is a lot of work underway to introduce such multi-threading into R: for statisticians, the work being done at Imperial College London on the use of high-performance linear algebra code in R in order to make better use of both multi-core CPUs and the massively-parallel computational units inside GPU (graphics processing unit) cards and chips looks particularly exciting - see the <a href="http://www.hiplar.org">HiPLAR</a> web site for details.</p>
 
 <p>Another solution is to break the computational task into parts and execute each part as a separate process, often on a <em>cluster</em> of networked computers. There are several R packages that facilitate such use of a clustered HPC compute facility - see the R <a href="http://cran.r-project.org/web/views/HighPerformanceComputing.html">task view for parallel and high-performance computing</a> for more details.</p>
 
-<p>However, all these methods currently require the installation of special software libraries and/or the compilation of special patched versions of R (as in the case of <em>HiPLARb</em>), or access to a HPC cluster. By contrast, the technique demonstrated by Jan Luts, and the package discussed here, will work on any computer with more than one CPU core running Linux or Mac OS X without an additional work. MS-Windows users will need to research alternative solutions.</p>
+<p>However, all these methods currently require the installation of special software libraries and/or the compilation of special patched versions of R (as in the case of <em>HiPLARb</em>), or access to a HPC cluster. By contrast, the technique demonstrated by Jan Luts, and the package discussed here, will work on any computer with more than one CPU core running Linux or Mac OS X without any additional work. Later on, techniques that will work on MS-Windows computers will be demonstrated.</p>
 
 <h2>The parallel package</h2>
 
-<p>This package has been a standard core inclusion in R since version 2.14 - hence it is probably already installed in your version of R. If not, its predecessor, the <em>multicore</em> package, can be installed (in the usual way) in earlier versions of R and it should work in an identical fashion.</p>
+<p>This package has been a standard core inclusion in R since version 2.14 - hence it is probably already installed in your version of R. If not, its predecessor, the <em>multicore</em> package, can be installed (in the usual way) in earlier versions of R and it should work in an identical fashion. The <em>parallel</em> package has also subsumed the <em>snow</em> package, which provides support for parallel computatin in R on computer clusters.</p>
 
 <h3>Forking</h3>
 
-<p>We will be using the  <em>parallel</em> package to  <em>fork</em> the operating system process in which R is running. On modern unix (including Mac OS X) and linux systems, this means that the process is effectively cloned, and the forked child process has access to the same memory regions as the parent process and can thus reference, say, R objects created in the parent process, without having to pass a copy of these objects to it. However, the memory sharing is done on a <em>copy-on-write</em> basis, such that as soon as any of the child processes which share the parent process&#39;s memory write to a region of that memory (as they do when, say, updating values in an R object such as a vector), then the write is made to a copy of that memory region. In this way, each forked child process has access to its own version of its memory space, while still sharing the parts of that memory space which are in-common with the parent process. This can dramatically reduce memory consumption when launching multiple R processes on one computer, particularly when large R data objects need to be read (but not modified) by each of the forked child processes - only one copy of the large read-only R object (say, a large matrix) need be in memory at once. The lexical scoping rules in R make such object sharing even easier. Forking also avoids the start-up time overhead of launching separate, new R processes. First, let&#39;s load the package:</p>
+<p>We will be using the  <em>parallel</em> package to  <em>fork</em> the operating system process in which R is running. On modern POSIX operating systems (which include Mac OS X and linux), this means that the process is effectively cloned, and the forked child process has access to the same memory regions as the parent process and can thus reference, say, R objects created in the parent process, without having to pass a copy of these objects to it. However, the memory sharing is done on a <em>copy-on-write</em> basis, such that as soon as any of the child processes which share the parent process&#39;s memory write to a region of that memory (as they do when, say, updating values in an R object such as a vector), then the write is made to a copy of that memory region. In this way, each forked child process has access to its own version of its memory space, while still sharing the parts of that memory space which are in-common with the parent process. This can dramatically reduce memory consumption when launching multiple R processes on one computer, particularly when large R data objects need to be read (but not modified) by each of the forked child processes - only one copy of the large read-only R object (say, a large matrix) need be in memory at once. The lexical scoping rules in R make such object sharing even easier. Forking also avoids the start-up time overhead of launching separate, new R processes. Unfortunately, MS-Windows doesn&#39;t support forking of processes, and thus other (cruder) methods must be employed (see below).</p>
+
+<p>First, let&#39;s load the package:</p>
 
 <pre><code class="r">library(parallel)
 </code></pre>
 
-<p>Next, let&#39;s define a test function: this one is based on Jan Luts&#39; example function which computes the eigenvalues of a matrix of random numbers. The only difference from Jan&#39;s version is that here the function expects its arguments to be passed as a list of named values. This was done because we will be using the <em>mclapply()</em> function from the <em>parallel</em> package, and like <em>lapply()</em>, it expects a list and returns a list. (There must be a more elegant way of passing arguments in a named list in R, equivalent to **args in Python?)</p>
+<p>Next, let&#39;s define a test function: this one is based on Jan Luts&#39; example function which computes the eigenvalues of a matrix of random numbers. The only difference from Jan&#39;s version is that here the function returns a dataframe.</p>
 
-<pre><code class="r">bigEigen &lt;- function(args) {
-    dmn &lt;- args$dmn
-    id &lt;- args$id
+<pre><code class="r">bigEigen &lt;- function(id, dmn) {
     mdnAbsEigVals &lt;- NA
     A &lt;- matrix(runif(dmn^2), dmn, dmn)
     eigValues &lt;- eigen(A)$values
     mdnAbsEigVals &lt;- median(abs(eigValues))
-    return(data.frame(id = id, mdnAbsEigVals = mdnAbsEigVals))
+    return(data.frame(id = id, dmn = dmn, mdnAbsEigVals = mdnAbsEigVals))
 }
 </code></pre>
 
 <p>Now let&#39;s define a wrapper function which takes a dataframe of named function arguments and a function to be evaluated for each row of the dataframe arguments, and returns a dataframe of results. The argument multi=F causes it to use the usual sequential processing on a single CPU core, whereas multi=T dispatches forked processes to run in parallel. The <em>parallel</em> package looks after all the housekeeping details, including working out how many CPU cores are available and therefore how many sub-processes to optimally fork.</p>
 
-<pre><code class="r">oh.fork.it &lt;- function(df, FUN, multi = T) {
-    if (multi == T) {
-        return.df &lt;- as.data.frame(do.call(&quot;rbind&quot;, mclapply(split(df, rownames(df)), 
-            FUN, mc.cores = detectCores())))
-    } else {
-        return.df &lt;- as.data.frame(do.call(&quot;rbind&quot;, lapply(split(df, rownames(df)), 
-            FUN)))
+<pre><code class="r">in.parallel &lt;- function(df, FUN, multi = T) {
+    # Because lapply() and mclapply() want to pass arguments as a list, we
+    # need to provide a wrapper to call our target function via do.call()
+    DC.FUN &lt;- function(argslist) {
+        do.call(FUN, argslist)
     }
+
+    if (multi == T) {
+        return.list &lt;- mclapply(split(df, rownames(df)), DC.FUN, mc.cores = detectCores())
+    } else {
+        return.list &lt;- lapply(split(df, rownames(df)), DC.FUN)
+    }
+
+    # bind each dataframe in the returned list into one big dataframe
+    return.df &lt;- as.data.frame(do.call(&quot;rbind&quot;, return.list))
+    # sort the dataframe, assuming the sort column (id) is the first column
     return.df &lt;- return.df[do.call(order, return.df), ]
+
     return(return.df)
 }
 </code></pre>
@@ -249,51 +260,162 @@ tim∙churches@gmail∙com<br/>
 
 <p>Now let&#39;s run this on just one CPU core to see how long it takes, and examine the results:</p>
 
-<pre><code class="r">seq.time &lt;- system.time(sequential &lt;- oh.fork.it(my.args, bigEigen, multi = F))
+<pre><code class="r">seq.time &lt;- system.time(sequential &lt;- in.parallel(my.args, bigEigen, multi = F))
 </code></pre>
 
-<p>That took 70.46 seconds to run all replicates. Better check the results:</p>
+<p>That took 130.408 seconds to run all replicates. Better check the results:</p>
 
 <pre><code class="r">sequential
 </code></pre>
 
-<pre><code>##   id mdnAbsEigVals
-## 1  1         6.459
-## 2  2         6.508
-## 3  3         6.468
-## 4  4         6.447
-## 5  5         6.406
-## 6  6         6.442
-## 7  7         6.465
-## 8  8         6.425
+<pre><code>##   id  dmn mdnAbsEigVals
+## 1  1 1000         6.457
+## 2  2 1000         6.468
+## 3  3 1000         6.420
+## 4  4 1000         6.443
+## 5  5 1000         6.425
+## 6  6 1000         6.525
+## 7  7 1000         6.508
+## 8  8 1000         6.499
 </code></pre>
 
-<p>Now let&#39;s run it using all the available CPU cores (the computer on which this document/code was run has 4 cores):</p>
+<p>Now let&#39;s run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):</p>
 
-<pre><code class="r">par.time &lt;- system.time(parall &lt;- oh.fork.it(my.args, bigEigen, multi = T))
+<pre><code class="r">par.time &lt;- system.time(parall &lt;- in.parallel(my.args, bigEigen, multi = T))
 </code></pre>
 
-<p>OK, that took 22.381 seconds, which is <strong>3.1 times as fast</strong>, using <strong>4 times as many CPU cores</strong>. Not too shabby! Check the results:</p>
+<p>OK, that took 87.551 seconds, which is <strong>1.5 times as fast</strong>, using <strong>2 times as many CPU cores</strong>. Not too shabby! Check the results:</p>
 
 <pre><code class="r">parall
 </code></pre>
 
-<pre><code>##   id mdnAbsEigVals
-## 1  1         6.518
-## 2  2         6.468
-## 3  3         6.415
-## 4  4         6.457
-## 5  5         6.447
-## 6  6         6.492
-## 7  7         6.437
-## 8  8         6.524
+<pre><code>##   id  dmn mdnAbsEigVals
+## 1  1 1000         6.448
+## 2  2 1000         6.474
+## 3  3 1000         6.490
+## 4  4 1000         6.423
+## 5  5 1000         6.477
+## 6  6 1000         6.447
+## 7  7 1000         6.481
+## 8  8 1000         6.407
 </code></pre>
 
 <p>Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).</p>
 
+<h2>Using a cluster</h2>
+
+<p>Forking of processes only works on POSIX computers, and it only works within a single instance of the operating system (i.e on a single physical computer or a single virtual machine). The alternative is to use a <em>cluster</em>, which involves the creation of multiple R processes which are independent of each other, either on the same computer, or distributed over many networked computers, with each process communicating with others via a network socket, or by more specialised protocols such as MPI or PVM. Network sockets are supported on all operating systems by default, and require no additional software or hardware to work. They can be used for communication between processes on a single computer and thus, cluster computing via sockets will work on standard MS-Windows computers.</p>
+
+<p>First, let&#39;s modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We&#39;ll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NA), then the function will use forking as previously: </p>
+
+<pre><code class="r">in.parallel &lt;- function(df, FUN, multi = T, cl = NULL) {
+    # Because lapply() and mclapply() want to pass arguments as a list, we
+    # need to provide a wrapper to call our target function via do.call()
+    DC.FUN &lt;- function(argslist) {
+        do.call(FUN, argslist)
+    }
+
+    if (multi == T) {
+        if (&quot;cluster&quot; %in% class(cl)) {
+            return.list &lt;- parLapply(cl, split(df, rownames(df)), DC.FUN)
+        } else {
+            return.list &lt;- mclapply(split(df, rownames(df)), DC.FUN, mc.cores = detectCores())
+        }
+    } else {
+        return.list &lt;- lapply(split(df, rownames(df)), DC.FUN)
+    }
+
+    # bind each dataframe in the returned list into one big dataframe
+    return.df &lt;- as.data.frame(do.call(&quot;rbind&quot;, return.list))
+    # sort the dataframe, assuming the sort column (id) is the first column
+    return.df &lt;- return.df[do.call(order, return.df), ]
+
+    return(return.df)
+}
+</code></pre>
+
+<p>Now, let&#39;s start up our cluster of R processes on our computer - as many R processes as there are CPU cores:</p>
+
+<pre><code class="r">cl &lt;- makeCluster(detectCores())
+</code></pre>
+
+<p>Now let&#39;s run this on just one CPU core to see how long it takes, and examine the results:</p>
+
+<pre><code class="r">seq.time &lt;- system.time(sequential &lt;- in.parallel(my.args, bigEigen, multi = F))
+</code></pre>
+
+<p>That took 128.625 seconds to run all replicates. Better check the results:</p>
+
+<pre><code class="r">sequential
+</code></pre>
+
+<pre><code>##   id  dmn mdnAbsEigVals
+## 1  1 1000         6.480
+## 2  2 1000         6.381
+## 3  3 1000         6.411
+## 4  4 1000         6.483
+## 5  5 1000         6.450
+## 6  6 1000         6.365
+## 7  7 1000         6.496
+## 8  8 1000         6.474
+</code></pre>
+
+<p>Now let&#39;s run it using the cluster of R processes we started up:</p>
+
+<pre><code class="r">par.time &lt;- system.time(parall &lt;- in.parallel(my.args, bigEigen, multi = T, 
+    cl = cl))
+</code></pre>
+
+<pre><code>## Error: 2 nodes produced errors; first error: object &#39;bigEigen&#39; not found
+</code></pre>
+
+<pre><code>## Timing stopped at: 0.004 0.001 0.007
+</code></pre>
+
+<p>Hmmm, that threw an error. Why? Because in a cluster, each compute node is completely separate, and thus they don&#39;t know about the biEigen() function which we created in the parent R process. Handily, there is a function provided in <em>parallel</em> to distribute objects (such as user-defined functions) to each node in a cluster:</p>
+
+<pre><code class="r">clusterExport(cl, &quot;bigEigen&quot;)
+</code></pre>
+
+<p>Now let&#39;s try it again:</p>
+
+<pre><code class="r">par.time &lt;- system.time(parall &lt;- in.parallel(my.args, bigEigen, multi = T, 
+    cl = cl))
+</code></pre>
+
+<p>OK, that took 76.733 seconds, which is <strong>1.7 times as fast</strong>, using <strong>2 times as many CPU cores</strong>. Also not too bad! Best check the results:</p>
+
+<pre><code class="r">parall
+</code></pre>
+
+<pre><code>##   id  dmn mdnAbsEigVals
+## 1  1 1000         6.425
+## 2  2 1000         6.489
+## 3  3 1000         6.472
+## 4  4 1000         6.466
+## 5  5 1000         6.462
+## 6  6 1000         6.484
+## 7  7 1000         6.443
+## 8  8 1000         6.504
+</code></pre>
+
+<p>Yup, looks OK. Finally, remember to stop the cluster! Alternatively, creation and shut-down of the cluster could be put inside our <em>in.parallel()</em> function, but that would mean that there was the overhead of starting up several R processes, and then shutting them down, each time we called the function.</p>
+
+<pre><code class="r">stopCluster(cl)
+</code></pre>
+
 <h2>Other functions in <em>parallel</em></h2>
 
-<p>The <em>parallel</em> package also provides equivalent functions to automatically parallelise functions acting on vectors, as well as support for parallel processing on HPC clusters (including clusters which use network sockets, MPI or PVM for communication between each computer in the cluster) via the <em>snow</em> package.</p>
+<p>The <em>parallel</em> package also provides equivalent functions to automatically parallelise functions acting on vectors, as well as support for parallel processing on HPC clusters which use the more efficient MPI or PVM mechanisms, as opposed to sockets, for communication between each computer in the cluster.</p>
+
+<h2>Other resources</h2>
+
+<ul>
+<li>Matt Moores and Cathy Hargrave from QUT on <a href="http://www.slideshare.net/azeari/parallel-r">parallel Bayesian computation in R</a> </li>
+<li>The <a href="The%20%5Bfairly%20extensive%20vignette%5D(http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf">vignette for the <em>foreach</em> package</a> for the <em>parallel</em> package), which can execute iterations of a for loop in parallel (is a parallel iteration an oxymoron?).</li>
+<li>As mentioned, the <a href="http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf">fairly extensive vignette</a> for the <em>parallel</em> package</li>
+<li>the <em>boot</em> package for bootstrap operations supports parallel computation via the <em>parallel</em> package.</li>
+</ul>
 
 <hr/>
 
