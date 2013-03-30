@@ -13,7 +13,7 @@ Pre-amble
 ---------
 This short investigation of the _parallel_ package for R, was motvated by a demonstration of parallel processing with R given by Dr Jan Luts of the School of Mathematical Sciences at the University of Technology Sydney (UTS). The example function shown below is a slightly modified version of a function used by Jan in his demonstration (thanks to Jan for making a copy of his code available).
 
-A much better resource for the _parallel_ pakage thanthis document is the [fairly extensive vignette](http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf) for it!
+A much better resource for the _parallel_ pakage than this document is the [fairly extensive vignette](http://stat.ethz.ch/R-manual/R-devel/library/parallel/doc/parallel.pdf) for it!
 
 ### Threading and processes
 Each instance of R running on a computer is typically just a single process, which itself is essentially single-threaded (although that is slowly changing with each new version of R). What that means is that an R process will use the resources of only one CPU core. If your computer has one CPU chip with two cores (as do most recent laptops and desktop computers), then a single R session (running in a single process) will  use only half the available CPU power of that computer. Higher-end laptop and desktop computers (eg recent Macbook Pro laptops) typically have quad-core CPUs, and servers typically have two or four CPU chips each with between 4 and 12 cores - thus up to 48 cores in total. Some shared memory (NUMA) high-performance computing (HPC) machines make thousands of CPU cores available to the operating system. Running a single R process on such machines clearly under-utilises their capabilities. 
@@ -29,7 +29,7 @@ The parallel package
 This package has been a standard core inclusion in R since version 2.14 - hence it is probably already installed in your version of R. If not, its predecessor, the _multicore_ package, can be installed (in the usual way) in earlier versions of R and it should work in an identical fashion. The _parallel_ package has also subsumed the _snow_ package, which provides support for parallel computatin in R on computer clusters.
 
 ### Forking
-We will be using the  _parallel_ package to  _fork_ the operating system process in which R is running. On modern POSIX operating systems (which include Mac OS X and linux), this means that the process is effectively cloned, and the forked child process has access to the same memory regions as the parent process and can thus reference, say, R objects created in the parent process, without having to pass a copy of these objects to it. However, the memory sharing is done on a _copy-on-write_ basis, such that as soon as any of the child processes which share the parent process's memory write to a region of that memory (as they do when, say, updating values in an R object such as a vector), then the write is made to a copy of that memory region. In this way, each forked child process has access to its own version of its memory space, while still sharing the parts of that memory space which are in-common with the parent process. This can dramatically reduce memory consumption when launching multiple R processes on one computer, particularly when large R data objects need to be read (but not modified) by each of the forked child processes - only one copy of the large read-only R object (say, a large matrix) need be in memory at once. The lexical scoping rules in R make such object sharing even easier. Forking also avoids the start-up time overhead of launching separate, new R processes. Unfortunately, MS-Windows doesn't support forking of processes, and thus other (cruder) methods must be employed (see below).
+We will be using the  _parallel_ package to  _fork_ the operating system process in which R is running. On modern POSIX operating systems (which include Mac OS X and linux), this means that the process is effectively cloned, and the forked child process has access to the same memory regions as the parent process and can thus reference, say, R objects created in the parent process, without having to pass a copy of these objects to it. However, the memory sharing is done on a _copy-on-write_ basis, such that as soon as any of the child processes which share the parent process's memory write to a region of that memory (as they do when, say, updating values in an R object such as a vector), then the write is made to a copy of that memory region. In this way, each forked child process has access to its own version of its memory space, while still sharing the parts of that memory space which are in-common with the parent process. This can dramatically reduce memory consumption when launching multiple R processes on one computer, particularly when large R data objects need to be read (but not modified) by each of the forked child processes - only one copy of the large read-only R object (say, a large matrix) need be in memory at once. The lexical scoping rules in R make such object sharing even easier. Forking also avoids the start-up time overhead of launching separate, new R processes. Unfortunately, MS-Windows doesn't support forking of processes, and thus other methods must be employed (see below).
 
 First, let's load the package:
 
@@ -90,7 +90,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 130.408 seconds to run all replicates. Better check the results:
+That took 119.451 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -98,14 +98,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.457
-## 2  2 1000         6.468
-## 3  3 1000         6.420
-## 4  4 1000         6.443
-## 5  5 1000         6.425
-## 6  6 1000         6.525
-## 7  7 1000         6.508
-## 8  8 1000         6.499
+## 1  1 1000         6.503
+## 2  2 1000         6.487
+## 3  3 1000         6.446
+## 4  4 1000         6.561
+## 5  5 1000         6.511
+## 6  6 1000         6.459
+## 7  7 1000         6.443
+## 8  8 1000         6.530
 ```
 
 Now let's run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):
@@ -114,7 +114,7 @@ Now let's run it using all the available CPU cores (the computer on which this d
 par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T))
 ```
 
-OK, that took 87.551 seconds, which is **1.5 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
+OK, that took 73.709 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
 
 ```r
 parall
@@ -122,14 +122,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.448
-## 2  2 1000         6.474
-## 3  3 1000         6.490
-## 4  4 1000         6.423
-## 5  5 1000         6.477
-## 6  6 1000         6.447
-## 7  7 1000         6.481
-## 8  8 1000         6.407
+## 1  1 1000         6.423
+## 2  2 1000         6.440
+## 3  3 1000         6.453
+## 4  4 1000         6.476
+## 5  5 1000         6.488
+## 6  6 1000         6.449
+## 7  7 1000         6.431
+## 8  8 1000         6.456
 ```
 
 Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).
@@ -182,7 +182,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 128.625 seconds to run all replicates. Better check the results:
+That took 116.857 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -190,14 +190,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.480
-## 2  2 1000         6.381
-## 3  3 1000         6.411
-## 4  4 1000         6.483
-## 5  5 1000         6.450
-## 6  6 1000         6.365
-## 7  7 1000         6.496
-## 8  8 1000         6.474
+## 1  1 1000         6.417
+## 2  2 1000         6.436
+## 3  3 1000         6.483
+## 4  4 1000         6.467
+## 5  5 1000         6.506
+## 6  6 1000         6.420
+## 7  7 1000         6.462
+## 8  8 1000         6.495
 ```
 
 Now let's run it using the cluster of R processes we started up:
@@ -212,7 +212,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
 ```
 
 ```
-## Timing stopped at: 0.004 0.001 0.007
+## Timing stopped at: 0.004 0 0.007
 ```
 
 
@@ -229,7 +229,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
     cl = cl))
 ```
 
-OK, that took 76.733 seconds, which is **1.7 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
+OK, that took 71.979 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
 
 ```r
 parall
@@ -237,14 +237,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.425
-## 2  2 1000         6.489
-## 3  3 1000         6.472
-## 4  4 1000         6.466
-## 5  5 1000         6.462
-## 6  6 1000         6.484
-## 7  7 1000         6.443
-## 8  8 1000         6.504
+## 1  1 1000         6.482
+## 2  2 1000         6.469
+## 3  3 1000         6.466
+## 4  4 1000         6.430
+## 5  5 1000         6.480
+## 6  6 1000         6.518
+## 7  7 1000         6.461
+## 8  8 1000         6.450
 ```
 
 
