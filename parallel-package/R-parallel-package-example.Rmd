@@ -96,7 +96,7 @@ Using a cluster
 ---------------
 Forking of processes only works on POSIX computers, and it only works within a single instance of the operating system (i.e on a single physical computer or a single virtual machine). The alternative is to use a _cluster_, which involves the creation of multiple R processes which are independent of each other, either on the same computer, or distributed over many networked computers, with each process communicating with others via a network socket, or by more specialised protocols such as MPI or PVM. Network sockets are supported on all operating systems by default, and require no additional software or hardware to work. They can be used for communication between processes on a single computer and thus, cluster computing via sockets will work on standard MS-Windows computers.
 
-First, let's modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We'll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NA), then the function will use forking as previously: 
+First, let's modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We'll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NULL), then the function will use forking as previously: 
 
 ```{r}
 in.parallel <- function(df, FUN, multi=T, cl=NULL) {

@@ -90,7 +90,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 119.451 seconds to run all replicates. Better check the results:
+That took 70.586 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -98,23 +98,23 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.503
-## 2  2 1000         6.487
-## 3  3 1000         6.446
-## 4  4 1000         6.561
-## 5  5 1000         6.511
-## 6  6 1000         6.459
-## 7  7 1000         6.443
-## 8  8 1000         6.530
+## 1  1 1000         6.418
+## 2  2 1000         6.534
+## 3  3 1000         6.427
+## 4  4 1000         6.492
+## 5  5 1000         6.460
+## 6  6 1000         6.438
+## 7  7 1000         6.456
+## 8  8 1000         6.441
 ```
 
-Now let's run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):
+Now let's run it using all the available CPU cores (the computer on which this document/code was run has 4 cores):
 
 ```r
 par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T))
 ```
 
-OK, that took 73.709 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
+OK, that took 22.353 seconds, which is **3.2 times as fast**, using **4 times as many CPU cores**. Not too shabby! Check the results:
 
 ```r
 parall
@@ -122,14 +122,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.423
-## 2  2 1000         6.440
-## 3  3 1000         6.453
-## 4  4 1000         6.476
-## 5  5 1000         6.488
-## 6  6 1000         6.449
-## 7  7 1000         6.431
-## 8  8 1000         6.456
+## 1  1 1000         6.432
+## 2  2 1000         6.467
+## 3  3 1000         6.432
+## 4  4 1000         6.481
+## 5  5 1000         6.460
+## 6  6 1000         6.454
+## 7  7 1000         6.495
+## 8  8 1000         6.455
 ```
 
 Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).
@@ -138,7 +138,7 @@ Using a cluster
 ---------------
 Forking of processes only works on POSIX computers, and it only works within a single instance of the operating system (i.e on a single physical computer or a single virtual machine). The alternative is to use a _cluster_, which involves the creation of multiple R processes which are independent of each other, either on the same computer, or distributed over many networked computers, with each process communicating with others via a network socket, or by more specialised protocols such as MPI or PVM. Network sockets are supported on all operating systems by default, and require no additional software or hardware to work. They can be used for communication between processes on a single computer and thus, cluster computing via sockets will work on standard MS-Windows computers.
 
-First, let's modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We'll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NA), then the function will use forking as previously: 
+First, let's modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We'll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NULL), then the function will use forking as previously: 
 
 
 ```r
@@ -182,7 +182,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 116.857 seconds to run all replicates. Better check the results:
+That took 70.177 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -190,14 +190,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.417
-## 2  2 1000         6.436
-## 3  3 1000         6.483
-## 4  4 1000         6.467
-## 5  5 1000         6.506
-## 6  6 1000         6.420
-## 7  7 1000         6.462
-## 8  8 1000         6.495
+## 1  1 1000         6.424
+## 2  2 1000         6.454
+## 3  3 1000         6.481
+## 4  4 1000         6.454
+## 5  5 1000         6.455
+## 6  6 1000         6.523
+## 7  7 1000         6.456
+## 8  8 1000         6.433
 ```
 
 Now let's run it using the cluster of R processes we started up:
@@ -208,11 +208,11 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
 ```
 
 ```
-## Error: 2 nodes produced errors; first error: object 'bigEigen' not found
+## Error: 4 nodes produced errors; first error: object 'bigEigen' not found
 ```
 
 ```
-## Timing stopped at: 0.004 0 0.007
+## Timing stopped at: 0.004 0 0.006
 ```
 
 
@@ -229,7 +229,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
     cl = cl))
 ```
 
-OK, that took 71.979 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
+OK, that took 21.608 seconds, which is **3.2 times as fast**, using **4 times as many CPU cores**. Also not too bad! Best check the results:
 
 ```r
 parall
@@ -237,14 +237,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.482
-## 2  2 1000         6.469
-## 3  3 1000         6.466
-## 4  4 1000         6.430
-## 5  5 1000         6.480
-## 6  6 1000         6.518
-## 7  7 1000         6.461
-## 8  8 1000         6.450
+## 1  1 1000         6.446
+## 2  2 1000         6.442
+## 3  3 1000         6.446
+## 4  4 1000         6.435
+## 5  5 1000         6.473
+## 6  6 1000         6.466
+## 7  7 1000         6.473
+## 8  8 1000         6.494
 ```
 
 
