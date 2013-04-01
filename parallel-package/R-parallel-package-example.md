@@ -90,7 +90,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 127.471 seconds to run all replicates. Better check the results:
+That took 70.606 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -98,23 +98,23 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.472
-## 2  2 1000         6.441
-## 3  3 1000         6.405
-## 4  4 1000         6.497
-## 5  5 1000         6.427
-## 6  6 1000         6.438
-## 7  7 1000         6.389
-## 8  8 1000         6.395
+## 1  1 1000         6.452
+## 2  2 1000         6.436
+## 3  3 1000         6.472
+## 4  4 1000         6.500
+## 5  5 1000         6.421
+## 6  6 1000         6.439
+## 7  7 1000         6.464
+## 8  8 1000         6.443
 ```
 
-Now let's run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):
+Now let's run it using all the available CPU cores (the computer on which this document/code was run has 4 cores):
 
 ```r
 par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T))
 ```
 
-OK, that took 108.525 seconds, which is **1.2 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
+OK, that took 21.01 seconds, which is **3.4 times as fast**, using **4 times as many CPU cores**. Not too shabby! Check the results:
 
 ```r
 parall
@@ -122,14 +122,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.477
-## 2  2 1000         6.469
-## 3  3 1000         6.440
-## 4  4 1000         6.413
-## 5  5 1000         6.477
-## 6  6 1000         6.479
-## 7  7 1000         6.435
-## 8  8 1000         6.454
+## 1  1 1000         6.413
+## 2  2 1000         6.468
+## 3  3 1000         6.477
+## 4  4 1000         6.539
+## 5  5 1000         6.456
+## 6  6 1000         6.410
+## 7  7 1000         6.459
+## 8  8 1000         6.455
 ```
 
 Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).
@@ -182,7 +182,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 274.348 seconds to run all replicates. Better check the results:
+That took 70.315 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -190,14 +190,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.444
-## 2  2 1000         6.485
-## 3  3 1000         6.413
-## 4  4 1000         6.449
-## 5  5 1000         6.462
-## 6  6 1000         6.434
-## 7  7 1000         6.467
-## 8  8 1000         6.447
+## 1  1 1000         6.411
+## 2  2 1000         6.443
+## 3  3 1000         6.459
+## 4  4 1000         6.459
+## 5  5 1000         6.457
+## 6  6 1000         6.447
+## 7  7 1000         6.408
+## 8  8 1000         6.457
 ```
 
 Now let's run it using the cluster of R processes we started up:
@@ -208,11 +208,11 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
 ```
 
 ```
-## Error: 2 nodes produced errors; first error: object 'bigEigen' not found
+## Error: 4 nodes produced errors; first error: object 'bigEigen' not found
 ```
 
 ```
-## Timing stopped at: 0.006 0 0.015
+## Timing stopped at: 0.004 0 0.007
 ```
 
 
@@ -229,7 +229,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
     cl = cl))
 ```
 
-OK, that took 474.264 seconds, which is **0.58 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
+OK, that took 22.33 seconds, which is **3.1 times as fast**, using **4 times as many CPU cores**. Also not too bad! Best check the results:
 
 ```r
 parall
@@ -237,14 +237,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.474
-## 2  2 1000         6.449
-## 3  3 1000         6.451
-## 4  4 1000         6.447
-## 5  5 1000         6.395
-## 6  6 1000         6.494
-## 7  7 1000         6.399
-## 8  8 1000         6.457
+## 1  1 1000         6.450
+## 2  2 1000         6.469
+## 3  3 1000         6.470
+## 4  4 1000         6.440
+## 5  5 1000         6.457
+## 6  6 1000         6.476
+## 7  7 1000         6.407
+## 8  8 1000         6.482
 ```
 
 
