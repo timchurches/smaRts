@@ -32,7 +32,7 @@ in.parallel <- function(df, FUN, multi=T, cl=NULL) {
   }
   
   # bind each dataframe in the returned list into one big dataframe
-  return.df <- as.data.frame(do.call("rbind", return.list))
+  return.df <- do.call("rbind", return.list)
   # sort the dataframe, assuming the sort column (id) is the first column
   return.df <- return.df[ do.call(order,return.df),]
   

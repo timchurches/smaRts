@@ -7,7 +7,7 @@ tim∙churches@gmail∙com
 
 About this document
 -------------------
-This document is an example of [literate programming](http://en.wikipedia.org/wiki/Literate_programming), in which expository text is interleaved with computer program code and the output of that code. The document was created in markdown format using [RStudio](http://www.rstudio.com) and the [_knitr_](http://yihui.name/knitr/) package for the [R statistical environment](http://www.r-project.org).
+This document is an example of [literate programming](http://en.wikipedia.org/wiki/Literate_programming), in which expository text is interleaved with computer program code and the output of that code. The document was created in markdown format using [RStudio](http://www.rstudio.com) and the [_knitr_](http://yihui.name/knitr/) package for the [R statistical environment](http://www.r-project.org). The source code for this document is available on [GitHub](https://github.com/timchurches/smaRts/tree/master/parallel-package) under the terms of the Creative Commons Attribution-ShareAlike 3.0 Australia license (see http://creativecommons.org/licenses/by-sa/3.0/au/).
 
 Pre-amble
 ---------
@@ -26,7 +26,7 @@ However, all these methods currently require the installation of special softwar
 
 The parallel package
 --------------------
-This package has been a standard core inclusion in R since version 2.14 - hence it is probably already installed in your version of R. If not, its predecessor, the _multicore_ package, can be installed (in the usual way) in earlier versions of R and it should work in an identical fashion. The _parallel_ package has also subsumed the _snow_ package, which provides support for parallel computatin in R on computer clusters.
+This package has been a standard core inclusion in R since version 2.14 - hence it is probably already installed in your version of R. If not, its predecessor, the _multicore_ package, can be installed (in the usual way) in earlier versions of R and it should work in an identical fashion. The _parallel_ package has also subsumed the _snow_ package, which provides support for parallel computation in R on computer clusters.
 
 ### Forking
 We will be using the  _parallel_ package to  _fork_ the operating system process in which R is running. On modern POSIX operating systems (which include Mac OS X and linux), this means that the process is effectively cloned, and the forked child process has access to the same memory regions as the parent process and can thus reference, say, R objects created in the parent process, without having to pass a copy of these objects to it. However, the memory sharing is done on a _copy-on-write_ basis, such that as soon as any of the child processes which share the parent process's memory write to a region of that memory (as they do when, say, updating values in an R object such as a vector), then the write is made to a copy of that memory region. In this way, each forked child process has access to its own version of its memory space, while still sharing the parts of that memory space which are in-common with the parent process. This can dramatically reduce memory consumption when launching multiple R processes on one computer, particularly when large R data objects need to be read (but not modified) by each of the forked child processes - only one copy of the large read-only R object (say, a large matrix) need be in memory at once. The lexical scoping rules in R make such object sharing even easier. Forking also avoids the start-up time overhead of launching separate, new R processes. Unfortunately, MS-Windows doesn't support forking of processes, and thus other methods must be employed (see below).
@@ -69,7 +69,7 @@ in.parallel <- function(df, FUN, multi = T) {
     }
     
     # bind each dataframe in the returned list into one big dataframe
-    return.df <- as.data.frame(do.call("rbind", return.list))
+    return.df <- do.call("rbind", return.list)
     # sort the dataframe, assuming the sort column (id) is the first column
     return.df <- return.df[do.call(order, return.df), ]
     
@@ -90,7 +90,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 70.586 seconds to run all replicates. Better check the results:
+That took 135.826 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -98,23 +98,23 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.418
-## 2  2 1000         6.534
-## 3  3 1000         6.427
-## 4  4 1000         6.492
-## 5  5 1000         6.460
-## 6  6 1000         6.438
-## 7  7 1000         6.456
-## 8  8 1000         6.441
+## 1  1 1000         6.413
+## 2  2 1000         6.441
+## 3  3 1000         6.405
+## 4  4 1000         6.449
+## 5  5 1000         6.473
+## 6  6 1000         6.410
+## 7  7 1000         6.441
+## 8  8 1000         6.484
 ```
 
-Now let's run it using all the available CPU cores (the computer on which this document/code was run has 4 cores):
+Now let's run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):
 
 ```r
 par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T))
 ```
 
-OK, that took 22.353 seconds, which is **3.2 times as fast**, using **4 times as many CPU cores**. Not too shabby! Check the results:
+OK, that took 85.558 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
 
 ```r
 parall
@@ -122,21 +122,21 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.432
-## 2  2 1000         6.467
-## 3  3 1000         6.432
-## 4  4 1000         6.481
-## 5  5 1000         6.460
-## 6  6 1000         6.454
-## 7  7 1000         6.495
-## 8  8 1000         6.455
+## 1  1 1000         6.456
+## 2  2 1000         6.450
+## 3  3 1000         6.408
+## 4  4 1000         6.440
+## 5  5 1000         6.411
+## 6  6 1000         6.462
+## 7  7 1000         6.468
+## 8  8 1000         6.502
 ```
 
 Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).
 
 Using a cluster
 ---------------
-Forking of processes only works on POSIX computers, and it only works within a single instance of the operating system (i.e on a single physical computer or a single virtual machine). The alternative is to use a _cluster_, which involves the creation of multiple R processes which are independent of each other, either on the same computer, or distributed over many networked computers, with each process communicating with others via a network socket, or by more specialised protocols such as MPI or PVM. Network sockets are supported on all operating systems by default, and require no additional software or hardware to work. They can be used for communication between processes on a single computer and thus, cluster computing via sockets will work on standard MS-Windows computers.
+Forking of processes only works on POSIX computers, and it only works within a single instance of the operating system (i.e on a single physical computer or a single virtual machine). The alternative is to use a _cluster_, which involves the creation of multiple R processes which are independent of each other, either on the same computer, or distributed over many networked computers, with each process communicating with others via a network socket, or by more specialised protocols such as MPI or PVM. Network sockets are supported on all operating systems by default, and require no additional software or hardware to work. Thus they can be used for communication between processes on a single computer and thus, cluster computing via sockets will work on standard MS-Windows computers - you can create a mini-cluster of R processes running on your computer, on-the-fly.
 
 First, let's modify our wrapper function so that it can use a cluster of independent processes, not just forked child processes. We'll add an argument called cl which takes an object of class cluster. If cl is set, socket communications to a cluster of processes is used. If cl is not set (it defaults to NULL), then the function will use forking as previously: 
 
@@ -160,7 +160,7 @@ in.parallel <- function(df, FUN, multi = T, cl = NULL) {
     }
     
     # bind each dataframe in the returned list into one big dataframe
-    return.df <- as.data.frame(do.call("rbind", return.list))
+    return.df <- do.call("rbind", return.list)
     # sort the dataframe, assuming the sort column (id) is the first column
     return.df <- return.df[do.call(order, return.df), ]
     
@@ -182,7 +182,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 70.177 seconds to run all replicates. Better check the results:
+That took 121.617 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -190,14 +190,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.424
-## 2  2 1000         6.454
-## 3  3 1000         6.481
-## 4  4 1000         6.454
-## 5  5 1000         6.455
-## 6  6 1000         6.523
-## 7  7 1000         6.456
-## 8  8 1000         6.433
+## 1  1 1000         6.419
+## 2  2 1000         6.450
+## 3  3 1000         6.439
+## 4  4 1000         6.457
+## 5  5 1000         6.412
+## 6  6 1000         6.453
+## 7  7 1000         6.463
+## 8  8 1000         6.490
 ```
 
 Now let's run it using the cluster of R processes we started up:
@@ -208,7 +208,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
 ```
 
 ```
-## Error: 4 nodes produced errors; first error: object 'bigEigen' not found
+## Error: 2 nodes produced errors; first error: object 'bigEigen' not found
 ```
 
 ```
@@ -229,7 +229,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
     cl = cl))
 ```
 
-OK, that took 21.608 seconds, which is **3.2 times as fast**, using **4 times as many CPU cores**. Also not too bad! Best check the results:
+OK, that took 73.654 seconds, which is **1.7 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
 
 ```r
 parall
@@ -237,14 +237,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.446
-## 2  2 1000         6.442
-## 3  3 1000         6.446
-## 4  4 1000         6.435
-## 5  5 1000         6.473
-## 6  6 1000         6.466
-## 7  7 1000         6.473
-## 8  8 1000         6.494
+## 1  1 1000         6.439
+## 2  2 1000         6.453
+## 3  3 1000         6.443
+## 4  4 1000         6.443
+## 5  5 1000         6.398
+## 6  6 1000         6.453
+## 7  7 1000         6.469
+## 8  8 1000         6.475
 ```
 
 
@@ -254,6 +254,14 @@ Yup, looks OK. Finally, remember to stop the cluster! Alternatively, creation an
 stopCluster(cl)
 ```
 
+
+Parallel computing in the cloud
+-------------------------------
+Jan Luts demonstrated the use of an 8-core virtual linux computer hosted in the [NeCTAR research cloud](http://www.nectar.org.au/research-cloud). One instance of such a NeCTAR virtual machine is (at the time of writing) available at no cost and with no application process overhead at all to university-based researchers in Australia. Similar facilities are available in each State eg the HPC clusters available to NSW-based researchers provided by [Intersect Australia](http://www.intersect.org.au/hpc), although there may be a more formal application process for the use of these other facilities. 
+
+A non-free but still potentially very cheap alternative is the [Elastic Compute Cloud (EC2)](http://aws.amazon.com/ec2/) facility offered by Amazon (with similar facilities also provided by several competitors, but Amazon is by far the biggest and best established of the commercial cloud computing providers, and has recently installed facilities in two data centres in Sydney). On Amazon EC2, virtual computers can be requested via a web (or programmatic) interface, and then accessed via SSH terminal sessions or other means. The virtual computers are paid for by the hour, using a credit card, with charges for the computer(s), any network traffic (by volume) and any persistent storage used. However, the charges are very reasonable, although they can mount up if the requested virtual machines are left running for extended periods. Amazon also runs a "spot market" for unused capacity, in which Amazon EC2 customers can bid for computing time - if your bid is above the current floor price of the spot market for the resources which you have bid on, then your virtual computer(s) are started. The spot prices are typically very cheap indeed, although they do fluctuate. The advantage of the Amazon EC2 facility is that many virtual computers can be requested at once, each with up to 8 CPU cores (and up to 64 gigabytes of RAM, which means that huge R objects can be accomodated in memory when 64-bit versions of linux and R are used). By default, Amazon EC2 virtual machines are not persistent - although they have disc storage attached to them, once you terminate the machine, that disc storage disappears. However, it is straightforward to request persistent storage, so that the machine can be shut-down and the later restarted as it was you you left it. There are charges for such persistent storage, billed by the month, but they are very cheap.
+
+In order to test the Amazon EC2 facility, I submitted a request on the EC2 spot market for an 8-core linux virtual machine with 32 GB of memory (and 8GB pf disc storage) hosted one of the the Amazon Sydney data centres. The spot price for such a virtual machine was 17.5 cents per hour. I bid 20 cents per hour and thus my request was fulfilled immediately. Using SSH, I was able to log onto this virtual machine, install R on it (with a single command which took about 40 seconds to complete), and immediately run the R code shown in this document. The timings on this 8-core virtual machine were: 50.8 seconds for sequential processing, 11.7 seconds for forked parallel processing, and 11.9 seconds using a cluster of independent processes. The total cost of running this virtual machine for one hour (you are billed in whole-hour increments) on Amazon EC2 using the spot pricing, and including network traffic charges, was just 20 cents.
 
 Other functions in _parallel_
 -----------------------------
