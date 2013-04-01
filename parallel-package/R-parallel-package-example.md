@@ -90,7 +90,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 135.826 seconds to run all replicates. Better check the results:
+That took 127.471 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -98,14 +98,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.413
+## 1  1 1000         6.472
 ## 2  2 1000         6.441
 ## 3  3 1000         6.405
-## 4  4 1000         6.449
-## 5  5 1000         6.473
-## 6  6 1000         6.410
-## 7  7 1000         6.441
-## 8  8 1000         6.484
+## 4  4 1000         6.497
+## 5  5 1000         6.427
+## 6  6 1000         6.438
+## 7  7 1000         6.389
+## 8  8 1000         6.395
 ```
 
 Now let's run it using all the available CPU cores (the computer on which this document/code was run has 2 cores):
@@ -114,7 +114,7 @@ Now let's run it using all the available CPU cores (the computer on which this d
 par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T))
 ```
 
-OK, that took 85.558 seconds, which is **1.6 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
+OK, that took 108.525 seconds, which is **1.2 times as fast**, using **2 times as many CPU cores**. Not too shabby! Check the results:
 
 ```r
 parall
@@ -122,14 +122,14 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.456
-## 2  2 1000         6.450
-## 3  3 1000         6.408
-## 4  4 1000         6.440
-## 5  5 1000         6.411
-## 6  6 1000         6.462
-## 7  7 1000         6.468
-## 8  8 1000         6.502
+## 1  1 1000         6.477
+## 2  2 1000         6.469
+## 3  3 1000         6.440
+## 4  4 1000         6.413
+## 5  5 1000         6.477
+## 6  6 1000         6.479
+## 7  7 1000         6.435
+## 8  8 1000         6.454
 ```
 
 Yup, they look the same (remembering that each replicate creates its own matrix of random numbers).
@@ -182,7 +182,7 @@ Now let's run this on just one CPU core to see how long it takes, and examine th
 seq.time <- system.time(sequential <- in.parallel(my.args, bigEigen, multi = F))
 ```
 
-That took 121.617 seconds to run all replicates. Better check the results:
+That took 274.348 seconds to run all replicates. Better check the results:
 
 ```r
 sequential
@@ -190,14 +190,14 @@ sequential
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.419
-## 2  2 1000         6.450
-## 3  3 1000         6.439
-## 4  4 1000         6.457
-## 5  5 1000         6.412
-## 6  6 1000         6.453
-## 7  7 1000         6.463
-## 8  8 1000         6.490
+## 1  1 1000         6.444
+## 2  2 1000         6.485
+## 3  3 1000         6.413
+## 4  4 1000         6.449
+## 5  5 1000         6.462
+## 6  6 1000         6.434
+## 7  7 1000         6.467
+## 8  8 1000         6.447
 ```
 
 Now let's run it using the cluster of R processes we started up:
@@ -212,7 +212,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
 ```
 
 ```
-## Timing stopped at: 0.004 0 0.006
+## Timing stopped at: 0.006 0 0.015
 ```
 
 
@@ -229,7 +229,7 @@ par.time <- system.time(parall <- in.parallel(my.args, bigEigen, multi = T,
     cl = cl))
 ```
 
-OK, that took 73.654 seconds, which is **1.7 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
+OK, that took 474.264 seconds, which is **0.58 times as fast**, using **2 times as many CPU cores**. Also not too bad! Best check the results:
 
 ```r
 parall
@@ -237,18 +237,18 @@ parall
 
 ```
 ##   id  dmn mdnAbsEigVals
-## 1  1 1000         6.439
-## 2  2 1000         6.453
-## 3  3 1000         6.443
-## 4  4 1000         6.443
-## 5  5 1000         6.398
-## 6  6 1000         6.453
-## 7  7 1000         6.469
-## 8  8 1000         6.475
+## 1  1 1000         6.474
+## 2  2 1000         6.449
+## 3  3 1000         6.451
+## 4  4 1000         6.447
+## 5  5 1000         6.395
+## 6  6 1000         6.494
+## 7  7 1000         6.399
+## 8  8 1000         6.457
 ```
 
 
-Yup, looks OK. Finally, remember to stop the cluster! Alternatively, creation and shut-down of the cluster could be put inside our _in.parallel()_ function, but that would mean that there was the overhead of starting up several R processes, and then shutting them down, each time we called the function.
+Yup, looks OK. Finally, remember to stop the cluster! Otherwise all those R processes will continue to use (manily memory) resources on your comuter until you next log off or reboot. Alternatively, creation and shut-down of the cluster could be put inside our _in.parallel()_ function, but that would mean that there was the overhead of starting up several R processes, and then shutting them down, each time we called the function.
 
 ```r
 stopCluster(cl)
@@ -262,6 +262,11 @@ Jan Luts demonstrated the use of an 8-core virtual linux computer hosted in the 
 A non-free but still potentially very cheap alternative is the [Elastic Compute Cloud (EC2)](http://aws.amazon.com/ec2/) facility offered by Amazon (with similar facilities also provided by several competitors, but Amazon is by far the biggest and best established of the commercial cloud computing providers, and has recently installed facilities in two data centres in Sydney). On Amazon EC2, virtual computers can be requested via a web (or programmatic) interface, and then accessed via SSH terminal sessions or other means. The virtual computers are paid for by the hour, using a credit card, with charges for the computer(s), any network traffic (by volume) and any persistent storage used. However, the charges are very reasonable, although they can mount up if the requested virtual machines are left running for extended periods. Amazon also runs a "spot market" for unused capacity, in which Amazon EC2 customers can bid for computing time - if your bid is above the current floor price of the spot market for the resources which you have bid on, then your virtual computer(s) are started. The spot prices are typically very cheap indeed, although they do fluctuate. The advantage of the Amazon EC2 facility is that many virtual computers can be requested at once, each with up to 8 CPU cores (and up to 64 gigabytes of RAM, which means that huge R objects can be accomodated in memory when 64-bit versions of linux and R are used). By default, Amazon EC2 virtual machines are not persistent - although they have disc storage attached to them, once you terminate the machine, that disc storage disappears. However, it is straightforward to request persistent storage, so that the machine can be shut-down and the later restarted as it was you you left it. There are charges for such persistent storage, billed by the month, but they are very cheap.
 
 In order to test the Amazon EC2 facility, I submitted a request on the EC2 spot market for an 8-core linux virtual machine with 32 GB of memory (and 8GB pf disc storage) hosted one of the the Amazon Sydney data centres. The spot price for such a virtual machine was 17.5 cents per hour. I bid 20 cents per hour and thus my request was fulfilled immediately. Using SSH, I was able to log onto this virtual machine, install R on it (with a single command which took about 40 seconds to complete), and immediately run the R code shown in this document. The timings on this 8-core virtual machine were: 50.8 seconds for sequential processing, 11.7 seconds for forked parallel processing, and 11.9 seconds using a cluster of independent processes. The total cost of running this virtual machine for one hour (you are billed in whole-hour increments) on Amazon EC2 using the spot pricing, and including network traffic charges, was just 20 cents.
+
+Amazon EC2 also offers pre-configured compute clusters, and there are virtual machine images with R and MPI already installed (not yet investigated), as well as a [Hadoop](http://en.wikipedia.org/wiki/Apache_Hadoop) facility called [Elastic MapReduce](http://aws.amazon.com/elasticmapreduce/). Several R packages are available which leverage Hadoop facilities, and there is even an experimental R package called [segue](http://code.google.com/p/segue/) which automates the setting up of an ElasticMapReduce cluster on Amazon and the distribution of parallel tasks to it.
+
+### Security and confidentiality considerations
+Cloud computing facilitis are ideal for working with public-domain or other non-confidential data. However, considerable thought and care is needed before uploading any form of confidential data to cloud facilities: most provide only basic security features, and it is up to the end-user to properly secure any virtual machines under their control. That said, Amazon are now offering "virtual private clouds", which can be configured with proper firewalling, encryption of data-at-rest and other measures which are typically found in secure computing environments. However, some effort and quite high-level system administration skills are required to acheive a secure computing environment in any cloud computing facility. If you are using confidential data provided by a third party, it is also important to check whether the data supplier is happy for the data to be uploaded to a cloud computing facility.
 
 Other functions in _parallel_
 -----------------------------
